@@ -10,6 +10,7 @@
 
 #include<iostream>
 #include<fstream>
+#include<stdlib.h>
 
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
@@ -554,24 +555,50 @@ void VulkanEngine::cleanup()
 void VulkanEngine::load_meshes() {
     // resize the array to 3 members
     _triangleMesh._vertices.resize(3);
+    _redTriangleMesh._vertices.resize(3);
+    _blueTriangleMesh._vertices.resize(3);
+
+    Mesh baseTriangleMesh = {};
+    baseTriangleMesh._vertices.resize(3);
+
+    cout << "Base Mesh Creation" << endl;
 
     //vertex positions
-    _triangleMesh._vertices[0].position = {1.f,1.f,0.0f};
-    _triangleMesh._vertices[1].position = {-1.f,1.f,0.0f};
-    _triangleMesh._vertices[2].position = {0.f,-1.f, 0.0f};
+    baseTriangleMesh._vertices[0].position = {1.f,1.f,0.0f};
+    baseTriangleMesh._vertices[1].position = {-1.f,1.f,0.0f};
+    baseTriangleMesh._vertices[2].position = {0.f,-1.f, 0.0f};
+
+    _triangleMesh._vertices = baseTriangleMesh._vertices;
+    _blueTriangleMesh._vertices = baseTriangleMesh._vertices;
+    _redTriangleMesh._vertices = baseTriangleMesh._vertices;
 
     //vertex colors
     _triangleMesh._vertices[0].color = {0.f, 1.f, 0.0f};
     _triangleMesh._vertices[1].color = {0.f, 1.f, 0.0f};
     _triangleMesh._vertices[2].color = {0.f, 1.f, 0.0f};
 
+    _redTriangleMesh._vertices[0].color = {1.f, 0.f, 0.0f};
+    _redTriangleMesh._vertices[1].color = {1.f, 0.f, 0.0f};
+    _redTriangleMesh._vertices[2].color = {1.f, 0.f, 0.0f};
+
+    _blueTriangleMesh._vertices[0].color = {0.f, 0.f, 1.0f};
+    _blueTriangleMesh._vertices[1].color = {0.f, 0.f, 1.0f};
+    _blueTriangleMesh._vertices[2].color = {0.f, 0.f, 1.0f};
+
+    cout << "Triangles loaded " << endl;
+
+
     _monkeyMesh.load_from_obj("../assets/monkey_smooth.obj");
 
     upload_mesh(_triangleMesh);
+    upload_mesh(_blueTriangleMesh);
+    upload_mesh(_redTriangleMesh);
     upload_mesh(_monkeyMesh);
 
     _meshes["monkey"] = _monkeyMesh;
     _meshes["triangle"] = _triangleMesh;
+    _meshes["redTriangle"] = _redTriangleMesh;
+    _meshes["blueTriangle"] = _blueTriangleMesh;
 }
 
 void VulkanEngine::upload_mesh(Mesh &mesh) {
@@ -631,9 +658,13 @@ Mesh* VulkanEngine::get_mesh(const std::string& name){
 void VulkanEngine::draw_objects(VkCommandBuffer cmd, RenderObject *first, int count) {
     //model view matrix
     //camera view
-    glm::vec3 camPos = {0.f, -6.f, -10.f};
 
-    glm::mat4 view = glm::translate(glm::mat4(1.f), camPos);
+
+    glm::mat4 view = glm::lookAt(_cameraPosition,
+                                 _cameraPosition + _cameraOrigin,
+                                 _cameraUpPosition);
+
+
     //camera projection
     glm::mat4 projection = glm::perspective(glm::radians(70.f),1700.f/ 900.f, 0.1f, 200.0f);
     projection[1][1] *= -1;
@@ -675,11 +706,13 @@ void VulkanEngine::init_scene() {
 
     _renderables.push_back(monkey);
 
-    for(int x = -20; x <=20;x++){
-        for(int y = -20; y <= 20; y++){
+    for(int x = -30; x <=30;x++){
+        for(int y = -30; y <= 30; y++){
 
             RenderObject tri;
-            tri.mesh = get_mesh("triangle");
+            if(y < -10) tri.mesh = get_mesh("triangle");
+            if(y > -10 && y < 10) tri.mesh = get_mesh("redTriangle");
+            if(y > 10) tri.mesh = get_mesh("blueTriangle");
             tri.material = get_material("defaultmesh");
             glm::mat4 translation = glm::translate(glm::mat4{1.0},glm::vec3(x,0,y));
             glm::mat4 scale = glm::scale(glm::mat4{1.0}, glm::vec3(0.2,0.2,0.2));
@@ -717,8 +750,7 @@ void VulkanEngine::draw()
     VkClearValue clearValue;
 
     //make a clear-color from frame number. This will flash with a 120*pi frame period.
-    float flash = abs(sin(_frameNumber/120.f));
-    clearValue.color = {{0.0f,0.0f,flash,1.0f}};
+    clearValue.color = {{0.0f,0.0f,0.0f,1.0f}};
 
     VkClearValue depthClear;
     depthClear.depthStencil.depth = 1.f;
@@ -793,18 +825,24 @@ void VulkanEngine::run()
 	while (!bQuit)
 	{
 		//Handle events on queue
+        const float cameraSpeed = 0.20f;
 		while (SDL_PollEvent(&e) != 0)
 		{
 			//close the window when user alt-f4s or clicks the X button			
 			if (e.type == SDL_QUIT) { bQuit = true; }
             else if (e.type == SDL_KEYDOWN){
                 // which key is it?
-                if(e.key.keysym.sym == SDLK_SPACE) {
-                    _selectedShader+=1;
-                    if (_selectedShader > 1) {
-                        // Toggle shader
-                        _selectedShader = 0;
-                    }
+                if(e.key.keysym.sym == SDLK_w) {
+                    _cameraPosition += cameraSpeed * _cameraOrigin;
+                }
+                if(e.key.keysym.sym == SDLK_s) {
+                    _cameraPosition -= cameraSpeed * _cameraOrigin;
+                }
+                if(e.key.keysym.sym == SDLK_d) {
+                    _cameraPosition += glm::normalize(glm::cross(_cameraOrigin, _cameraUpPosition)) * cameraSpeed;
+                }
+                if(e.key.keysym.sym == SDLK_a) {
+                    _cameraPosition -= glm::normalize(glm::cross(_cameraOrigin, _cameraUpPosition)) * cameraSpeed;
                 }
             }
 

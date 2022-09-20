@@ -101,17 +101,14 @@ public:
     VkSemaphore _presentSemaphore, _renderSemaphore;
     VkFence _renderFence;
 
-    VkPipelineLayout _trianglePipelineLayout;
-
-    VkPipeline _trianglePipeline;
-    VkPipeline _redTrianglePipeline;
-
     DeletionQueue _mainDeletionQueue;
 
     VmaAllocator _allocator;
 
     VkPipeline _meshPipeline;
     Mesh _triangleMesh;
+    Mesh _redTriangleMesh;
+    Mesh _blueTriangleMesh;
     Mesh _monkeyMesh;
 
     VkPipelineLayout _meshPipelineLayout;
@@ -126,7 +123,14 @@ public:
     std::unordered_map<std::string, Material> _materials;
     std::unordered_map<std::string, Mesh> _meshes;
 
-    int _selectedShader{0};
+
+//            glm::mat4 view = glm::lookAt(glm::vec3(0.0f,10.0f,30.0f),
+//                                         glm::vec3(0.0f,0.0f,0.0f),
+//                                         glm::vec3(0.0f,1.0f,0.0f));
+
+    glm::vec3 _cameraPosition = glm::vec3(0.0f,10.0f,30.0f);
+    glm::vec3 _cameraOrigin = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 _cameraUpPosition = glm::vec3(0.0f,1.0f,0.0f);
 
 	bool _isInitialized{ false };
 	int _frameNumber {0};
