@@ -6,6 +6,14 @@ layout (location = 2) in vec3 vColor;
 
 layout (location = 0) out vec3 outColor;
 
+// set = 0 means the descriptor set at slot 0
+// binding 0 means the 0th place in the descriptor set (the first index) is the camera buffer
+layout (set = 0, binding = 0) uniform CameraBuffer {
+    mat4 view;
+    mat4 proj;
+    mat4 viewproj;
+} cameraData;
+
 // Push constants from graphics pipeline
 layout ( push_constant ) uniform constants {
 vec4 data;
@@ -13,6 +21,7 @@ mat4 render_matrix;
 } PushConstants;
 
 void main() {
-    gl_Position = PushConstants.render_matrix * vec4(vPosition, 1.0f);
+    mat4 transformMatrix = (cameraData.viewproj * PushConstants.render_matrix);
+    gl_Position = transformMatrix * vec4(vPosition, 1.0f);
     outColor = vColor;
 }

@@ -30,8 +30,11 @@ struct RenderObject {
     glm::mat4 transformMatrix;
 };
 
-
-
+struct GPUCameraData{
+    glm::mat4 view;
+    glm::mat4 proj;
+    glm::mat4 viewproj;
+};
 
 //FIFO Queue to house Vulkan objects for deletion
 struct DeletionQueue{
@@ -49,6 +52,19 @@ struct DeletionQueue{
     }
 
 };
+//Struct to hold gpu and cpu execution threads along with commandPools and command buffers
+struct FrameData {
+
+    AllocatedBuffer cameraBuffer;
+    VkDescriptorSet globalDescriptor;
+    VkSemaphore _presentSemaphore, _renderSemaphore;
+    VkFence _renderFence;
+
+    VkCommandPool _commandPool;
+    VkCommandBuffer _mainCommandBuffer;
+};
+
+constexpr unsigned int FRAME_OVERLAP = 2;
 
 // pipelines
 
@@ -72,7 +88,6 @@ public:
 
 class VulkanEngine {
 public:
-
     VkSwapchainKHR  _swapchain;
     // image format expected by the windowing system
     VkFormat _swapchainImageFormat;
@@ -92,14 +107,8 @@ public:
     VkQueue _graphicsQueue; //queue to submit too
     uint32_t _graphicsQueueFamily; //family of that queue
 
-    VkCommandPool _commandPool; //holds commands to issue
-    VkCommandBuffer _mainCommandBuffer; //buffer to execute commands
-
     VkRenderPass _renderPass;
     std::vector<VkFramebuffer> _framebuffers;
-
-    VkSemaphore _presentSemaphore, _renderSemaphore;
-    VkFence _renderFence;
 
     DeletionQueue _mainDeletionQueue;
 
@@ -123,14 +132,15 @@ public:
     std::unordered_map<std::string, Material> _materials;
     std::unordered_map<std::string, Mesh> _meshes;
 
+    VkDescriptorSetLayout _globalSetLayout;
+    VkDescriptorPool _descriptorPool;
 
-//            glm::mat4 view = glm::lookAt(glm::vec3(0.0f,10.0f,30.0f),
-//                                         glm::vec3(0.0f,0.0f,0.0f),
-//                                         glm::vec3(0.0f,1.0f,0.0f));
+//    glm::vec3 _cameraPosition = glm::vec3(0.0f,10.0f,30.0f);
+//    glm::vec3 _cameraOrigin = glm::vec3(0.0f, 0.0f, -1.0f);
+//    glm::vec3 _cameraUpPosition = glm::vec3(0.0f,1.0f,0.0f);
 
-    glm::vec3 _cameraPosition = glm::vec3(0.0f,10.0f,30.0f);
-    glm::vec3 _cameraOrigin = glm::vec3(0.0f, 0.0f, -1.0f);
-    glm::vec3 _cameraUpPosition = glm::vec3(0.0f,1.0f,0.0f);
+    FrameData _frames[FRAME_OVERLAP];
+
 
 	bool _isInitialized{ false };
 	int _frameNumber {0};
@@ -144,6 +154,10 @@ public:
     Material* get_material(const std::string& name);
 
     Mesh* get_mesh(const std::string& name);
+
+    FrameData& get_current_frame();
+
+    AllocatedBuffer create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 
     void draw_objects(VkCommandBuffer cmd, RenderObject* first, int count);
 
@@ -177,10 +191,11 @@ private:
 
     bool load_shader_module(const char* filePath, VkShaderModule* outShaderModule);
 
+    void init_descriptors();
+
     void init_pipelines();
 
     void load_meshes();
 
     void upload_mesh(Mesh& mesh);
-
 };
