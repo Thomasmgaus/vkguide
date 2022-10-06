@@ -11,6 +11,19 @@
 #include <glm/glm.hpp>
 #include <unordered_map>
 
+struct GPUObjectData {
+    glm::mat4 modelMatrix;
+};
+
+
+struct GPUSceneData {
+    glm::vec4 fogColor;
+    glm::vec4 fogDistance;
+    glm::vec4 ambientColor;
+    glm::vec4 sunlightDirection;
+    glm::vec4 sunlightColor;
+};
+
 struct MeshPushConstants {
     glm::vec4 data;
     glm::mat4 render_matrix;
@@ -54,7 +67,8 @@ struct DeletionQueue{
 };
 //Struct to hold gpu and cpu execution threads along with commandPools and command buffers
 struct FrameData {
-
+    AllocatedBuffer objectBuffer;
+    VkDescriptorSet objectDescriptor;
     AllocatedBuffer cameraBuffer;
     VkDescriptorSet globalDescriptor;
     VkSemaphore _presentSemaphore, _renderSemaphore;
@@ -88,6 +102,10 @@ public:
 
 class VulkanEngine {
 public:
+    GPUSceneData _sceneParameters;
+    AllocatedBuffer _sceneParameterBuffer;
+
+    VkPhysicalDeviceProperties _gpuProperties;
     VkSwapchainKHR  _swapchain;
     // image format expected by the windowing system
     VkFormat _swapchainImageFormat;
@@ -133,6 +151,7 @@ public:
     std::unordered_map<std::string, Mesh> _meshes;
 
     VkDescriptorSetLayout _globalSetLayout;
+    VkDescriptorSetLayout _objectSetLayout;
     VkDescriptorPool _descriptorPool;
 
 //    glm::vec3 _cameraPosition = glm::vec3(0.0f,10.0f,30.0f);
@@ -198,4 +217,6 @@ private:
     void load_meshes();
 
     void upload_mesh(Mesh& mesh);
+
+    size_t pad_uniform_buffer_size(size_t originalSize);
 };
