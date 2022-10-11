@@ -16,11 +16,20 @@ layout (set = 0, binding = 0) uniform CameraBuffer {
 struct ObjectData {
     mat4 model;
 };
+
+struct MeshData {
+    vec4 data;
+    mat4 render_matrix;
+};
 // All object Matracies
 layout(std140, set = 1, binding = 0) readonly buffer ObjectBuffer {
     ObjectData objects[];
 
 } objectBuffer;
+
+layout(set = 2, binding = 0) readonly buffer MeshBuffer {
+    MeshData meshPosition[];
+} meshBuffer;
 
 // Push constants from graphics pipeline
 layout ( push_constant ) uniform constants {
@@ -29,7 +38,7 @@ mat4 render_matrix;
 } PushConstants;
 
 void main() {
-    mat4 modelMatrix = objectBuffer.objects[gl_BaseInstance].model;
+    mat4 modelMatrix = meshBuffer.render_matrix[gl_BaseInstance] * objectBuffer.objects[gl_BaseInstance].model;
     mat4 transformMatrix = (cameraData.viewproj * modelMatrix);
     gl_Position = transformMatrix * vec4(vPosition, 1.0f);
     outColor = vColor;

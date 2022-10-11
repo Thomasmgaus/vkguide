@@ -37,9 +37,7 @@ struct Material {
 //a simple way to hold content for scenes
 struct RenderObject {
     Mesh* mesh;
-
     Material* material;
-
     glm::mat4 transformMatrix;
 };
 
@@ -67,6 +65,8 @@ struct DeletionQueue{
 };
 //Struct to hold gpu and cpu execution threads along with commandPools and command buffers
 struct FrameData {
+    AllocatedBuffer meshBuffer;
+    VkDescriptorSet meshDescriptor;
     AllocatedBuffer objectBuffer;
     VkDescriptorSet objectDescriptor;
     AllocatedBuffer cameraBuffer;
@@ -152,6 +152,7 @@ public:
 
     VkDescriptorSetLayout _globalSetLayout;
     VkDescriptorSetLayout _objectSetLayout;
+    VkDescriptorSetLayout _meshSetLayout;
     VkDescriptorPool _descriptorPool;
 
 //    glm::vec3 _cameraPosition = glm::vec3(0.0f,10.0f,30.0f);
